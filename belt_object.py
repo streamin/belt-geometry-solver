@@ -7,6 +7,7 @@ MIN_SPACE = 1.01   # pulleys must be at least this * (r1 + r2) apart. This numbe
 CIRCLE_RESOLUTION = 40 # number of straight segments to draw a full circle
 LINE_WIDTH = 2 # for plotting the belt
 CIRCLE_VALUE = 0.8 # 0 is black, 1 is white
+ARROW_SCALE = 100 # scalling factor for reaction force arrow in relation to the pully radius.
 
 class BeltObject:
     """
@@ -34,6 +35,8 @@ class BeltObject:
         self.y_in = [None] * self.num
         self.x_out = [None] * self.num
         self.y_out = [None] * self.num
+        self.reaction_angle = [None] * self.num
+        self.reaction_force = [None] * self.num
 
     # -------------------------------------------------------------
     # Internal helpers
@@ -99,7 +102,7 @@ class BeltObject:
             # Global tangent angle from pulley i to j
             self.global_tangent_angle[i] = self.angle_0_to_2pi(self.local_tangent_angle[i] + self.C2C_angle[i])
 
-        # ---------- Second pass: wrap angles, contact points ----------
+        # ---------- Second pass: wrap angles, contact points, reaction forces ----------
         for i in range(n):
             k = (i - 1) % n
 
@@ -116,13 +119,20 @@ class BeltObject:
             r  = p_i.radius
             d  = p_i.direction
 
-            theta_in = self.global_tangent_angle[k] + d*(math.pi/2) # angle from the centre of pulley to where the incoming belt contacts it
-            self.x_in[i]  = cx + r * math.cos(theta_in)
-            self.y_in[i]  = cy + r * math.sin(theta_in)
+            tangent_in = self.global_tangent_angle[k]
+            tangent_out = self.global_tangent_angle[i]
 
-            theta_out = self.global_tangent_angle[i] + d*(math.pi/2) # angle from the centre of pulley to where the outgoing belt contacts it
-            self.x_out[i] = cx + r * math.cos(theta_out)
-            self.y_out[i] = cy + r * math.sin(theta_out)
+            normal_in = tangent_in + d*(math.pi/2) # angle from the centre of pulley to where the incoming belt contacts it
+            self.x_in[i]  = cx + r * math.cos(normal_in)
+            self.y_in[i]  = cy + r * math.sin(normal_in)
+
+            normal_out = tangent_out + d*(math.pi/2) # angle from the centre of pulley to where the outgoing belt contacts it
+            self.x_out[i] = cx + r * math.cos(normal_out)
+            self.y_out[i] = cy + r * math.sin(normal_out)
+
+            # ----------------- Reaction force ----------------
+            self.reaction_angle[i] = self.angle_0_to_2pi(tangent_out-tangent_in)/2 + tangent_in - math.pi/2
+            self.reaction_force[i] = 2*math.cos(math.pi/2 - self.angle_0_to_2pi(tangent_out-tangent_in)/2)
 
         # ---------- Total belt length ----------
         self.total_length = sum(self.wrap_length) + sum(self.tangent_length)
@@ -152,7 +162,9 @@ class BeltObject:
             "x_in": self.x_in,
             "y_in": self.y_in,
             "x_out": self.x_out,
-            "y_out": self.y_out
+            "y_out": self.y_out,
+            "reaction_angle": self.reaction_angle,
+            "reaction_force": self.reaction_force
         }
     
     def get_segment(self, i):
@@ -169,10 +181,12 @@ class BeltObject:
             "x_in": self.x_in[i],
             "y_in": self.y_in[i],
             "x_out": self.x_out[i],
-            "y_out": self.y_out[i]
+            "y_out": self.y_out[i],
+            "reaction_angle": self.reaction_angle[i],
+            "reaction_force": self.reaction_force[i]
         }
 
-    def draw_belt(self, show_pulleys=True):
+    def draw_belt(self, show_pulleys=True, show_reaction=True):
         """
         Draws the belt path: each arc and tangent segment in a different color.
         Requires compute() to have been run.
@@ -201,12 +215,35 @@ class BeltObject:
                 
                 circ_color = colorsys.hsv_to_rgb(0, 0, CIRCLE_VALUE)
                 circle = plt.Circle((cx, cy), r, fill=True, color=circ_color, linewidth=0)
-                circle.set_zorder(1)
+                circle.set_zorder(2)
                 ax.add_patch(circle)
-                ax.text(cx, cy, str(i+1), ha='center', va='center', color="black", zorder=3)
+                ax.text(cx, cy, str(i+1), ha='center', va='center', color="black", zorder=4)
 
         # --------------------------------------------
-        # 2. Draw arcs (wrap segments)
+        # 2. Draw reaction (optional)
+        # --------------------------------------------
+        if show_reaction:
+            for i in range(n):
+
+                p_i = pulleys[i]
+
+                cx = p_i.x_position
+                cy = p_i.y_position
+                r  = p_i.radius
+                f  = self.reaction_force[i]
+                a  = self.reaction_angle[i]
+
+                # arrow starts from the radius of the pulley so the arrows appear have the right proportions
+                x1 = cx + r*math.cos(a)
+                y1 = cy + r*math.sin(a)
+
+                x2 = x1 + ARROW_SCALE * f * math.cos(a)
+                y2 = y1 + ARROW_SCALE * f * math.sin(a)
+
+                ax.plot([x1, x2], [y1, y2], color="black", linewidth=LINE_WIDTH, zorder=1)
+
+        # --------------------------------------------
+        # 3. Draw arcs (wrap segments)
         # --------------------------------------------
         for i in range(n):
             p_i = pulleys[i]
@@ -226,11 +263,11 @@ class BeltObject:
             x_arc = cx + r * np.cos(arc_t)
             y_arc = cy + r * np.sin(arc_t)
 
-            rand_color = self.arc_colour(i, n)
-            ax.plot(x_arc, y_arc, color=rand_color, linewidth=LINE_WIDTH, zorder=2)
+            arc_color = self.arc_colour(i, n)
+            ax.plot(x_arc, y_arc, color=arc_color, linewidth=LINE_WIDTH, zorder=3)
 
         # --------------------------------------------
-        # 3. Draw straight tangent segments
+        # 4. Draw straight tangent segments
         # --------------------------------------------
         for i in range(n):
             j = (i + 1) % n
@@ -238,8 +275,8 @@ class BeltObject:
             x1, y1 = self.x_out[i], self.y_out[i]
             x2, y2 = self.x_in[j],  self.y_in[j]
 
-            rand_color = rand_color = self.line_colour(i, n)
-            ax.plot([x1, x2], [y1, y2], color=rand_color, linewidth=LINE_WIDTH, zorder=2)
+            line_color = rand_color = self.line_colour(i, n)
+            ax.plot([x1, x2], [y1, y2], color=line_color, linewidth=LINE_WIDTH, zorder=3)
 
         plt.title("Belt Path Visualization")
         plt.xlabel("X")
