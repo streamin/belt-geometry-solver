@@ -4,14 +4,14 @@ import numpy as np
 import colorsys
 
 MIN_SPACE = 1.01   # pulleys must be at least this * (r1 + r2) apart. This number must be > 1
-CIRCLE_RESOLUTION = 40 # number of straight segments to draw a full circle
+CIRCLE_RESOLUTION = 50 # number of straight segments to draw a full circle
 LINE_WIDTH = 2 # for plotting the belt
 CIRCLE_VALUE = 0.8 # 0 is black, 1 is white
-ARROW_SCALE = 100 # scalling factor for reaction force arrow in relation to the pully radius.
+ARROW_SCALE = 60 # scalling factor for reaction force arrow.
 
 class BeltObject:
     """
-    Computes tangent lengths, wrap angles, and total belt length
+    Computes tangent lengths, wrap angles, static reaction forces, and total belt length
     around any number of pulley objects.
     Pulley objects must have radius, x_position, y_position, direction.
     """
@@ -284,3 +284,4 @@ class BeltObject:
         ax.set_axisbelow(True) # force gridlines below circles
         plt.grid(True, zorder=0)
         plt.show()
+
