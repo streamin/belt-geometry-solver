@@ -60,13 +60,13 @@ All math is designed so:
 
 📚 Class Overview  
 PullyObject  
-Represents a single pulley with radius, 2D position, and rotation direction.  
-Accepts directions: 1, -1, "CW", "CCW".  
-Validates numeric inputs and normalizes direction internally.
+• Represents a single pulley with radius, 2D position, and rotation direction.  
+• Accepts directions: 1, -1, "CW", "CCW".  
+• Validates numeric inputs and normalizes direction internally.
 
 BeltObject  
-Given multiple pulleys, computes tangent lengths, wrap angles, contact points, and total belt length.  
-Provides helper functions for retrieving geometry and producing color‑coded belt visualizations.
+• Given multiple pulleys, computes tangent lengths, wrap angles, contact points, and total belt length.  
+• Provides helper functions for retrieving geometry and producing color‑coded belt visualizations.
 
 
 🖼 Preview  
