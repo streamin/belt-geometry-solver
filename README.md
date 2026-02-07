@@ -18,16 +18,16 @@ This project models both open and crossed belts and supports CW/CCW pulleys in a
 
 📦 Installation  
 pip install matplotlib numpy  
-Copy BeltObject.py and PullyObject.py into your project directory.  
+Copy BeltObject.py and PulleyObject.py into your project directory.  
 
 
 🧱 Basic Usage  
 • Create pulleys  
-from pully_object import PullyObject  
+from Pulley_object import PulleyObject  
 from belt_object import BeltObject  
-p1 = PullyObject(radius=20, x_position=0,   y_position=0,   direction="CW")  
-p2 = PullyObject(radius=40, x_position=150, y_position=50,  direction="CCW")  
-p3 = PullyObject(radius=30, x_position=80,  y_position=140, direction="CW")  
+p1 = PulleyObject(radius=20, x_position=0,   y_position=0,   direction="CW")  
+p2 = PulleyObject(radius=40, x_position=150, y_position=50,  direction="CCW")  
+p3 = PulleyObject(radius=30, x_position=80,  y_position=140, direction="CW")  
 
 • Build the belt  
 belt = BeltObject(p1, p2, p3)  
@@ -59,7 +59,7 @@ All math is designed so:
 
 
 📚 Class Overview  
-PullyObject  
+PulleyObject  
 • Represents a single pulley with radius, 2D position, and rotation direction.  
 • Accepts directions: 1, -1, "CW", "CCW".  
 • Validates numeric inputs and normalizes direction internally.
