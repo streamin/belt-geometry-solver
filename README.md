@@ -10,6 +10,7 @@ This project models both open and crossed belts and supports CW/CCW pulleys in a
 • Computes wrap angle and wrap length for each pulley  
 • Calculates incoming and outgoing belt contact points  
 • Computes total belt length (arcs + tangent segments)  
+• Computes reaction forces and angles for a constant tension belt (proportional to the belt tension)  
 • Visualizes the belt with color‑coded arcs and straight lines  
 • Pulleys drawn as filled circles  
 • Uses bright, fully saturated HSV colors  
@@ -84,7 +85,7 @@ BeltObject
 
 🤝 Contributing  
 Pull requests and suggestions are welcome.  
-Potential additions: DXF/SVG export, animation mode, tension diagrams, direction arrows, pulley labels, blueprint‑style visuals.  
+Potential additions: DXF/SVG export, animation mode, direction arrows, pulley labels, pulley torques.  
 
 
 📜 License  
