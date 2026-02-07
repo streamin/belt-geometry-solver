@@ -19,7 +19,7 @@ This project models both open and crossed belts and supports CW/CCW pulleys in a
 
 📦 Installation  
 pip install matplotlib numpy  
-Copy BeltObject.py and PulleyObject.py into your project directory.  
+Copy belt_object.py and pulley_object.py into your project directory.  
 
 
 🧱 Basic Usage  
