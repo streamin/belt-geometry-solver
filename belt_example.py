@@ -42,6 +42,16 @@ def pulley_teeth_to_radius(i):
 # -----------------------------
 def main():
     clear_console()
+
+    # Torque units must match length and force units. Example: mm, N, Nmm
+    pulleyA = po.PulleyObject(pulley_teeth_to_radius(19), 0, 0, "CW")
+    pulleyB = po.PulleyObject(pulley_teeth_to_radius(36), 440, 0, "CW", 75*1000)
+    pulleyC = po.PulleyObject(25, 340, -25, "CCW", 10)
+    belt1 = bo.BeltObject(pulleyA, pulleyB, pulleyC, unknown_torque_index=0, tensioner_index=2, tensioner_tension=12)
+    belt1.set_force_scale(0.1)
+    belt1.set_torque_scale(0.001)
+    belt1.draw_belt()
+    
     pulley1 = po.PulleyObject(pulley_teeth_to_radius(19), 0, 0, "CW")
     pulley2 = po.PulleyObject(pulley_teeth_to_radius(36), 440, 0, "CCW")
     pulley3 = po.PulleyObject(pulley_teeth_to_radius(18), 440, -440, "CW")
@@ -50,17 +60,17 @@ def main():
     pulley6 = po.PulleyObject(pulley_teeth_to_radius(24), 200, 50, "CW")
     pulley7 = po.PulleyObject(pulley_teeth_to_radius(18), 100, -300, "CCW")
     pulley8 = po.PulleyObject(pulley_teeth_to_radius(36), -40, -620, "CW")
-    belt = bo.BeltObject(pulley1, pulley2, pulley3, pulley4, pulley5, pulley6, pulley7, pulley8, unknown_torque_index=0, min_tension=100)
-    
-    print(f"Belt Length: {belt.get_total_length()}")
-    print()
-    print(f"Pulley 0 and tangent from pulley 0 to pulley 1: {belt.get_segment_geometry(0)}")
+    belt2 = bo.BeltObject(pulley1, pulley2, pulley3, pulley4, pulley5, pulley6, pulley7, pulley8, unknown_torque_index=0, min_tension=100)
+    belt2.set_force_scale(1)
+    belt2.set_torque_scale(0.01)
+    belt2.draw_belt()
 
-    belt.set_force_scale(1)
-    belt.set_torque_scale(0.01)
-    belt.draw_belt()
+    print(f"belt2 Length: {belt2.get_total_length()}")
+    print()
+    print(f"belt2: Pulley 0 and tangent from pulley 0 to pulley 1: {belt2.get_segment_geometry(0)}")
 
 if __name__ == "__main__":
 
     main()
+
 
