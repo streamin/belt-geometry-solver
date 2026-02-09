@@ -89,4 +89,4 @@ Potential additions: DXF/SVG export, animation mode, direction arrows, pulley la
 
 
 📜 License  
-Free to do whatever you want with it.
+MIT License
