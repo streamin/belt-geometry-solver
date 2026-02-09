@@ -43,7 +43,7 @@ class BeltObject:
     Pulley objects must have radius, x_position, y_position, direction, torque.
     """
 
-    def __init__(self, *pulleys, unknown_torque_index=None, min_tension=0, tensioner_index=None, tensioner_tension=0):
+    def __init__(self, *pulleys, unknown_torque_index=0, min_tension=0, tensioner_index=None, tensioner_tension=0):
         # validate number of pulleys
         if len(pulleys) < 2:
             raise ValueError("At least two pulleys are required.")
@@ -62,7 +62,7 @@ class BeltObject:
         self.tensioner_tension = tensioner_tension
 
         # ----- Validate index inputs -----
-        self.__validate_index("unknown_torque", unknown_torque_index) # user must define this becasue it chooses what input to overwrite
+        self.__validate_index("unknown_torque", unknown_torque_index)
         self.unknown_torque_index = unknown_torque_index
 
         if tensioner_index is not None:
@@ -459,3 +459,4 @@ class BeltObject:
 
         # ---------- set flag to recompute forces ----------
         self.recompute_forces = True # Do not do imediatly because user may be itereating through geometry
+
