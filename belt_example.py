@@ -60,7 +60,7 @@ def main():
     pulley6 = po.PulleyObject(pulley_teeth_to_radius(24), 200, 50, "CW")
     pulley7 = po.PulleyObject(pulley_teeth_to_radius(18), 100, -300, "CCW")
     pulley8 = po.PulleyObject(pulley_teeth_to_radius(36), -40, -620, "CW")
-    belt2 = bo.BeltObject(pulley1, pulley2, pulley3, pulley4, pulley5, pulley6, pulley7, pulley8, unknown_torque_index=0, min_tension=100)
+    belt2 = bo.BeltObject(pulley1, pulley2, pulley3, pulley4, pulley5, pulley6, pulley7, pulley8, min_tension=100)
     belt2.set_force_scale(1)
     belt2.set_torque_scale(0.01)
     belt2.draw_belt()
@@ -72,5 +72,6 @@ def main():
 if __name__ == "__main__":
 
     main()
+
 
 
