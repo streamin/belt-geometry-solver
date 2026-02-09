@@ -1,6 +1,6 @@
 🟦 Belt Geometry Solver & Visualizer  
-A Python library for computing and visualizing belt paths across any number of pulleys.
-The solver computes center‑to‑center geometry, tangent points, wrap angles, belt length, and produces clear matplotlib diagrams showing arcs and straight belt runs.
+A Python library for computing and visualizing belt paths and reaction forces for any number of pulleys.
+The solver computes center‑to‑center geometry, tangent points, wrap angles, belt length, force vectors and produces clear matplotlib diagrams.
 This project models both open and crossed belts and supports CW/CCW pulleys in arbitrary 2D layouts.
 
 
@@ -10,10 +10,10 @@ This project models both open and crossed belts and supports CW/CCW pulleys in a
 • Computes wrap angle and wrap length for each pulley  
 • Calculates incoming and outgoing belt contact points  
 • Computes total belt length (arcs + tangent segments)  
-• Computes reaction forces and angles for a constant tension belt (proportional to the belt tension)  
+• Computes reaction forces and tension for all belt segmants  
 • Visualizes the belt with color‑coded arcs and straight lines  
-• Pulleys drawn as filled circles  
-• Uses bright, fully saturated HSV colors  
+• Shows pulleys and pulley labels  
+• shows reaction forces and pully torques  
 • Clean object‑oriented design  
 
 
@@ -31,7 +31,7 @@ p2 = PulleyObject(radius=40, x_position=150, y_position=50,  direction="CCW")
 p3 = PulleyObject(radius=30, x_position=80,  y_position=140, direction="CW")  
 
 • Build the belt  
-belt = BeltObject(p1, p2, p3)  
+belt = BeltObject(p1, p2, p3, unknown_torque_index=0)  
 
 • Compute geometry  
 length = belt.compute()  
@@ -49,7 +49,8 @@ The solver calculates:
 • Wrap angle based on how the belt enters and exits each pulley  
 • Exact contact points on each pulley  
 • Total belt length by summing arc lengths and straight segments  
-• A complete belt path suitable for plotting or CAD export  
+• Tension in each segment of the belt  
+• Reaction forces for each pulley  
 
 All math is designed so:  
 • Tangent points lie exactly on the pulley circumference  
@@ -57,11 +58,12 @@ All math is designed so:
 • Both open and crossed belt paths work automatically  
 • Tangent segments meet arcs perfectly  
 • Zero‑wrap cases behave correctly (straight‑through tangent)  
+• Pully torques balance for analysing steady state scenaros  
 
 
 📚 Class Overview  
 PulleyObject  
-• Represents a single pulley with radius, 2D position, and rotation direction.  
+• Represents a single pulley with radius, 2D position, rotation direction, and torque.  
 • Accepts directions: 1, -1, "CW", "CCW".  
 • Validates numeric inputs and normalizes direction internally.
 
@@ -74,18 +76,14 @@ BeltObject
 <img width="640" height="480" alt="Example" src="https://github.com/user-attachments/assets/d6b42530-930d-4814-9adb-a85a3ca7af6f" />
 
 
-🛠 Advanced Features  
-• Evenly spaced vivid HSV colors for arcs and tangents  
-• Adjustable circle resolution for smooth arcs  
-• Pulley numbering  
-• Grid behind graphics  
+🛠 Advanced Features   
 • Robust error handling  
 • Supports any number of pulleys  
 
 
 🤝 Contributing  
 Pull requests and suggestions are welcome.  
-Potential additions: DXF/SVG export, animation mode, direction arrows, pulley labels, pulley torques.  
+Potential additions: DXF/SVG export, animation mode, direction arrows.  
 
 
 📜 License  
