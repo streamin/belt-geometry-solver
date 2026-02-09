@@ -28,15 +28,16 @@ def main():
     pulley6 = po.PulleyObject(pulley_teeth_to_radius(24), 200, 50, "CW")
     pulley7 = po.PulleyObject(pulley_teeth_to_radius(18), 100, -300, "CCW")
     pulley8 = po.PulleyObject(pulley_teeth_to_radius(36), -40, -620, "CW")
-    belt = bo.BeltObject(pulley1, pulley2, pulley3, pulley4, pulley5, pulley6, pulley7, pulley8)
+    belt = bo.BeltObject(pulley1, pulley2, pulley3, pulley4, pulley5, pulley6, pulley7, pulley8, unknown_torque_index=0, min_tension=100)
     
     print(f"Belt Length: {belt.get_total_length()}")
     print()
-    print(f"Pulley 2 and tangent from pulley 2 to pulley 3: {belt.get_segment(1)}")
-    #print()
-    #print(belt.get_segments())
+    print(f"Pulley 0 and tangent from pulley 0 to pulley 1: {belt.get_segment_geometry(0)}")
 
+    belt.set_force_scale(1)
+    belt.set_torque_scale(0.01)
     belt.draw_belt()
 
 if __name__ == "__main__":
+
     main()
