@@ -22,21 +22,14 @@ SOFTWARE.
 
 class PulleyObject:
     """
-    ** Pulley object length units must be the same as belt object length units. **
-    ** Pulley object torque units must be in belt object tension units X length units. **
-
-    * Positive torque is in CW direction. *
-
     Represents a pulley in a 2D belt system.
 
-    Each pulley has:
-      - a positive radius,
-      - an (x, y) position in Cartesian space,
-      - a rotation direction indicating whether the belt contacts it
-        in a clockwise (+1) or counter-clockwise (-1) orientation.
+    Torque units must match length and tension units. Example: (mm, N, N*mm) or (in, lb, in*lb)
+    Units of belt and pulley objects must be the same.
 
-    The class validates numeric inputs and normalizes direction values,
-    accepting 1, -1, "CW", or "CCW" for convenience.
+    Positive torque is in the CW direction.
+
+    direction indicating whether the belt wraps in a clockwise (+1) or counter-clockwise (-1) orientation.
     """
 
     def __init__(self, radius, x_position, y_position, direction, torque=0):
