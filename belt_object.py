@@ -41,16 +41,22 @@ class BeltObject:
 
     Computes tangent lengths, wrap angles, static reaction forces, and total belt length
     around any number of pulley objects.
-    Pulley objects must have radius, x_position, y_position, direction, torque.
 
-    min_tension is ignored if there is a tensioner pulley
+    tension is the minimum tension if tensioner_index is None, or the tension at tensioner_index if present
 
-    This solver is only for belts at a constant velocity.
-    In order for the belt to be steady state the pulley torques must be balanced.
     unknown_torque_index sets which pulley torque to ignore in order to balance the system.
+    This solver is only for belts at a constant velocity (steady state).
+    In order for the belt to be steady state the pulley torques must be balanced.
+
+    draw_belt()
+    - belt path is rainbow line
+    - pulleys are light grey circles
+    - local tension is dark grey circels
+    - reaction force vectors are black lines
+    - pulley torques are halos around pulleys or circles if pulleys are hidden. Blue is CW. Red is CCW
     """
 
-    def __init__(self, *pulleys, unknown_torque_index=0, min_tension=0, tensioner_index=None, tensioner_tension=0):
+    def __init__(self, *pulleys, unknown_torque_index=None, tensioner_index=None, tension=0, torque_scale=1, force_scale=1):
         # validate number of pulleys
         if len(pulleys) < 2:
             raise ValueError("At least two pulleys are required.")
@@ -61,20 +67,22 @@ class BeltObject:
             self.validate_pulley(i, pulleys[i])
         self.pulleys = list(pulleys) # make a list so it can be modified
 
-        # ----- Validate tension inputs -----
-        self.validate_pos_num("Minimum", min_tension)
-        self.min_tension = min_tension
+        # ----- Validate and set tension input -----
+        self.set_tension(tension)
 
-        self.validate_pos_num("Tensioner", tensioner_tension)
-        self.tensioner_tension = tensioner_tension
-
-        # ----- Validate index inputs -----
-        self.__validate_index("unknown_torque", unknown_torque_index)
-        self.unknown_torque_index = unknown_torque_index
+        # ----- Validate and set index inputs -----
+        if unknown_torque_index is not None:
+            self.set_unknown_torque_index(unknown_torque_index)
 
         if tensioner_index is not None:
-            self.__validate_index("tensioner", tensioner_index)
-        self.tensioner_index = tensioner_index
+            self.set_tensioner_index(tensioner_index)
+
+        # ----- Validate scale inputs -----
+        self.set_torque_scale(torque_scale)
+        self.set_force_scale(force_scale)
+
+        # set flags
+        self.recompute_forces = True
         
         # results filled by __compute_geometry()
         self.total_length = None
@@ -89,13 +97,11 @@ class BeltObject:
         self.y_in = [None] * self.num
         self.x_out = [None] * self.num
         self.y_out = [None] * self.num
+
+        # results filled by __compute_forces()
         self.reaction_angle = [None] * self.num
         self.reaction_force = [None] * self.num
         self.local_tension = [None] * self.num
-
-        self.force_scale = 1
-        self.torque_scale = 1
-        self.recompute_forces = True
 
         # compute geometry
         self.__compute_geometry()
@@ -103,24 +109,24 @@ class BeltObject:
     # -------------------------------------------------------------
     # Modify Inputs
     # -------------------------------------------------------------
-    def change_min_tension(self, min_tension):
-        self.validate_pos_num("Minimum tension", min_tension)
-        self.min_tension = min_tension
-
-        self.__compute_forces()
-    
-    def change_tensioner_tension(self, tensioner_tension):
-        self.validate_pos_num("Tensioner tension", tensioner_tension)
-        self.tensioner_tension = tensioner_tension
-
-        self.__compute_forces()
-
     def replace_pulley(self, pulley, position):
         self.__validate_index("Pulley", position)
         self.validate_pulley(position, pulley)        
         self.pulleys[position] = pulley
 
         self.__compute_geometry()
+        
+    def set_tension(self, tension):
+        self.validate_pos_num("Tension", tension)
+        self.tension = tension
+
+    def set_unknown_torque_index(self, unknown_torque_index):
+        self.__validate_index("Unknown torque", unknown_torque_index)
+        self.unknown_torque_index = unknown_torque_index
+
+    def set_tensioner_index(self, tensioner_index):
+        self.__validate_index("Tensioner", tensioner_index)
+        self.tensioner_index = tensioner_index
 
     def set_torque_scale(self, scale):
         self.validate_pos_num("Torque scale", scale)
@@ -207,22 +213,23 @@ class BeltObject:
             r  = p_i.radius
             d  = p_i.direction
             t  = p_i.torque
+            if i is self.unknown_torque_index:
+                t = self.unknown_torque
 
             x1, y1 = self.x_out[i], self.y_out[i]
             x2, y2 = self.x_in[j],  self.y_in[j]
 
             # --------- 1. Draw torques (optional)
             if show_torque:
-                tr = abs(t)*self.torque_scale/2
-                zorder = 1
-                #if tr < r: zorder = 3 # show nominal size. change order depending on size of pulley
-                if show_pulleys: tr += r # show around the pulley
+                tr = abs(t)*self.torque_scale/2 # divide by 2 so diam is correct
+                if show_pulleys:
+                    tr += r # show as halo around the pulley
                 
-                circ_color = (1, 0.85, 0.85)
-                if t >= 0:
-                    circ_color = (0.85, 0.85, 1)
+                circ_color = (0.85, 0.85, 1) # blue
+                if t < 0:
+                    circ_color = (1, 0.85, 0.85) # red
                 circle = plt.Circle((cx, cy), tr, fill=True, color=circ_color, linewidth=0)
-                circle.set_zorder(zorder)
+                circle.set_zorder(1)
                 ax.add_patch(circle)
 
             # --------- 2. Draw pulleys (optional)
@@ -234,7 +241,7 @@ class BeltObject:
 
             # --------- 3. Draw Tension (optional)
             if show_tension:
-                ten = self.force_scale * self.local_tension[i] /2
+                ten = self.force_scale * self.local_tension[i]/2 # divide by 2 so diam is correct
                 x_avg = (x1+x2)/2
                 y_avg = (y1+y2)/2
 
@@ -248,22 +255,22 @@ class BeltObject:
 
             # build arc
             arc_steps = int(theta_wrap * CIRCLE_RESOLUTION / (2*math.pi)) + 1 # number of straight line segments to draw arc. Adding one for including the endpoint
-            arc_t = np.linspace(theta_in, theta_in + d*theta_wrap, arc_steps, endpoint=True) # not using theta_out becasue of angle wrap errors
+            arc_t = np.linspace(theta_in, theta_in + d*theta_wrap, arc_steps, endpoint=True) # not using self.global_tangent_angle[j] becasue of angle wrap errors
 
             x_arc = cx + r * np.cos(arc_t)
             y_arc = cy + r * np.sin(arc_t)
 
-            arc_color = self.__arc_colour(i)
-            ax.plot(x_arc, y_arc, color=arc_color, linewidth=2, zorder=5)
+            arc_colour = self.__arc_colour(i)
+            ax.plot(x_arc, y_arc, color=arc_colour, linewidth=2, zorder=5)
 
             # --------- 5. Draw straight tangent segments
-            line_color = self.__line_colour(i)
-            ax.plot([x1, x2], [y1, y2], color=line_color, linewidth=2, zorder=5)
+            line_colour = self.__line_colour(i)
+            ax.plot([x1, x2], [y1, y2], color=line_colour, linewidth=2, zorder=5)
 
             # --------- 6. Draw reaction (optional)
             if show_reaction:
-                f  = self.reaction_force[i]
-                a  = self.reaction_angle[i]
+                f = self.reaction_force[i]
+                a = self.reaction_angle[i]
 
                 # arrow starts from the radius of the pulley so the arrows appear have the right proportions
                 rx1 = cx + r*math.cos(a)
@@ -318,46 +325,51 @@ class BeltObject:
     @staticmethod
     def validate_pulley(i, pulley):
         if not isinstance(pulley, po.PulleyObject):
-            raise TypeError(f"Position {i} is not a valid pulley object")
+            raise TypeError(f"Position {i} is not a valid pulley object.")
     
     # -------------------------------------------------------------
     # Compute reaction forces
     # -------------------------------------------------------------
     def __compute_forces(self):
-        # must always compute geometry first
+        if self.unknown_torque_index is None:
+            raise ValueError("You must set unknown_torque_index")
 
         n = self.num
         pulleys = self.pulleys
-        ut = self.unknown_torque_index
+        uti = self.unknown_torque_index
         ti = self.tensioner_index
-        mt = self.min_tension
-        tt = self.tensioner_tension
+        ten = self.tension
 
         # ---------- First pass: balance the pulley torques ----------
         sum_of_forces = 0
 
         for i in range(1, n):
-            m = (i + ut) % n # all indecies except the one we are trying to solve for
+            m = (i + uti) % n # all indecies except the one we are trying to solve for
             sum_of_forces += pulleys[m].direction * pulleys[m].torque / pulleys[m].radius # add up all the forces casued by pulleys with known torques
             
-        pulleys[ut].torque = -(pulleys[ut].direction * sum_of_forces * pulleys[ut].radius) # solve for the unknown pulley torque and overwrite the value there
+        self.unknown_torque = -(pulleys[uti].direction * sum_of_forces * pulleys[uti].radius) # solve for the unknown pulley torque, don't overwrite the original torque.
 
         # ---------- Second pass: calculate the relative tension in each segment ----------
         rel_ten = np.zeros(n)
 
         for i in range(1, n):
             k = i - 1
-            rel_ten[i] = rel_ten[k] - pulleys[i].direction * pulleys[i].torque / pulleys[i].radius
+
+            tor = pulleys[i].torque
+            if i is uti:
+                tor = self.unknown_torque
+
+            rel_ten[i] = rel_ten[k] - pulleys[i].direction * tor / pulleys[i].radius
         
         # ---------- Adjust the tensions ----------
         offset = 0
 
         if ti is None: # if no tensioner index
-            offset = mt - np.min(rel_ten)
+            offset = ten - np.min(rel_ten) # set minimum tension
         
         else: # if there is a tensioner
-            offset = tt - rel_ten[ti]
-            offset -= pulleys[ti].direction * (pulleys[ti].torque / pulleys[ti].radius) / 2 # so (tension_in + tension_out)/2 = tensioner_tension
+            offset = ten - rel_ten[ti]
+            offset -= pulleys[ti].direction * (pulleys[ti].torque / pulleys[ti].radius) / 2 # so that average tension [(tension_in + tension_out)/2] = target tension [self.tension]
 
         # add in the offset
         rel_ten += offset
