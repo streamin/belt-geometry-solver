@@ -50,12 +50,14 @@ def main():
     The tensioner creates 12N of tension in the belt (If the the tensioner imparts a torque the tension is the average of the in and out belt tension)
     The pedal torque is 75*1000 N*mm in the clockwise direction.
     """
+    # define pulleys
     target_belt_length = cfg.BELT_PITCH * cfg.BELT_TEETH
     front_radius = pulley_teeth_to_radius(cfg.FRONT_TEETH)
     rear_radius = pulley_teeth_to_radius(cfg.REAR_TEETH)
 
-    rear_pulley = po.PulleyObject(rear_radius, -cfg.CHAINSTAY_LENGTH, 0, "CW") # leave torque as zero. Will overwrite in calculation
+    rear_pulley = po.PulleyObject(rear_radius, -cfg.CHAINSTAY_LENGTH, 0, "CW", -100*1000) # leave torque as zero. Will overwrite in calculation
     front_pulley = po.PulleyObject(front_radius, 0, 0, "CW", cfg.PEDAL_TORQUE)
+    tensioner = po.PulleyObject(25, 0, -200, "CCW", 0.1) # 0.1 Nmm resistive torque in CW direction. arbitrary position. will update later
     
     """
     This section calculates the angle of the tensioner arm when the tensioner pulley is tangent with the minimum length belt (when there are only the two pulleys).
@@ -88,7 +90,6 @@ def main():
     """
     This section calculates the other tensioner arm angle limit (when the tensioner pulley is 1.1*(r_front + r_tensioner) away from front pulley).
     """
-    # 
     side_a = math.hypot(cfg.HUB_X, cfg.HUB_Y)
     side_b = 1.1*(front_radius + cfg.TENSIONER_RADIUS)
     side_c = cfg.TENSIONER_ARM
@@ -101,13 +102,12 @@ def main():
     #print(f"tensioner_min_angle: {math.degrees(tensioner_min_angle)}")
 
     """
-    In this section we create the tensioner pulley and the belt.
+    In this section we create the belt.
     We then iteratively find the tensioner arm angle (between our two limits) that satisfies our length target.
     If the target cannot be reached after a few loop iterations throw an error.
     """
-    # create the tensioner pulley at any position and create the belt
-    tensioner = po.PulleyObject(25, 0, -200, "CCW", 0.1) # 0.1 Nmm resistive torque in CW direction
-    belt = bo.BeltObject(rear_pulley, front_pulley, tensioner, unknown_torque_index=0, tensioner_index=2, tensioner_tension=cfg.TARGET_TENSION)
+    # create the belt
+    belt = bo.BeltObject(rear_pulley, front_pulley, tensioner, unknown_torque_index=0, tensioner_index=2, tension=cfg.TARGET_TENSION)
 
     # iterative length solver
     count = 0
@@ -148,7 +148,7 @@ def main():
     
     print(f"Belt length: {belt.total_length} mm")
     print(f"Top tension: {belt.local_tension[0]} N")
-    print(f"Rear reaction torque: {belt.pulleys[0].torque} N*mm")
+    print(f"Rear reaction torque: {belt.unknown_torque} N*mm")
 
 if __name__ == "__main__":
     main()
