@@ -31,16 +31,23 @@ MIN_SPACE = 1.01   # pulley centres must be at least MIN_SPACE*(r1 + r2) apart. 
 
 # drawing constants
 CIRCLE_RESOLUTION = 50 # number of straight segments to draw a full circle
-LINE_WIDTH = 2 # for plotting the belt
 
 class BeltObject:
     """
-    ** Pulley object length units must be the same as belt object length units. **
-    ** Pulley object torque units must be in belt object tension units * length units. **
+    Represents a belt in a 2D belt system.
+
+    Torque units must match length and tension units. Example: (mm, N, N*mm) or (in, lb, in*lb)
+    Units of belt and pulley objects must be the same.
 
     Computes tangent lengths, wrap angles, static reaction forces, and total belt length
     around any number of pulley objects.
     Pulley objects must have radius, x_position, y_position, direction, torque.
+
+    min_tension is ignored if there is a tensioner pulley
+
+    This solver is only for belts at a constant velocity.
+    In order for the belt to be steady state the pulley torques must be balanced.
+    unknown_torque_index sets which pulley torque to ignore in order to balance the system.
     """
 
     def __init__(self, *pulleys, unknown_torque_index=0, min_tension=0, tensioner_index=None, tensioner_tension=0):
@@ -126,18 +133,6 @@ class BeltObject:
     # -------------------------------------------------------------
     # Convenience getters
     # -------------------------------------------------------------
-    def get_total_length(self):
-        return self.total_length
-    
-    def get_pulley(self, i):
-        return self.pulleys[i]
-    
-    def get_wrap_length(self, i): # typically used to check minimum tooth engagment
-        return self.wrap_length[i]
-    
-    def get_global_tangent_angle(self, i): # typically used to check minimum position for tensioner pulley
-        return self.global_tangent_angle[i]
-
     def get_all_geometry(self):
         return {
             "C2C_angle": self.C2C_angle,
@@ -189,9 +184,9 @@ class BeltObject:
     # -------------------------------------------------------------
     # Draw function
     # -------------------------------------------------------------
-    def draw_belt(self, show_pulleys=True, show_labels=True, show_reaction=True, show_torque=True):
+    def draw_belt(self, show_pulleys=True, show_labels=True, show_reaction=True, show_torque=True, show_tension=True):
         """
-        Draws the belt path, pulleys, pulley labels, reaction forces, and pulley torques.
+        Draws the belt path, pulleys, pulley labels, reaction forces, tension, and pulley torques.
         """
         if self.recompute_forces:
             self.__compute_forces()
@@ -203,6 +198,7 @@ class BeltObject:
         ax.set_aspect("equal", adjustable="datalim")
 
         for i in range(n):
+            j = (i + 1) % n
 
             p_i = pulleys[i]
 
@@ -212,17 +208,21 @@ class BeltObject:
             d  = p_i.direction
             t  = p_i.torque
 
+            x1, y1 = self.x_out[i], self.y_out[i]
+            x2, y2 = self.x_in[j],  self.y_in[j]
+
             # --------- 1. Draw torques (optional)
             if show_torque:
-                tr = abs(t)*self.torque_scale
-                if show_pulleys:
-                    tr += r
+                tr = abs(t)*self.torque_scale/2
+                zorder = 1
+                #if tr < r: zorder = 3 # show nominal size. change order depending on size of pulley
+                if show_pulleys: tr += r # show around the pulley
                 
                 circ_color = (1, 0.85, 0.85)
                 if t >= 0:
                     circ_color = (0.85, 0.85, 1)
                 circle = plt.Circle((cx, cy), tr, fill=True, color=circ_color, linewidth=0)
-                circle.set_zorder(1)
+                circle.set_zorder(zorder)
                 ax.add_patch(circle)
 
             # --------- 2. Draw pulleys (optional)
@@ -232,7 +232,17 @@ class BeltObject:
                 circle.set_zorder(2)
                 ax.add_patch(circle)
 
-            # --------- 3. Draw arcs (wrap segments)
+            # --------- 3. Draw Tension (optional)
+            if show_tension:
+                ten = self.force_scale * self.local_tension[i] /2
+                x_avg = (x1+x2)/2
+                y_avg = (y1+y2)/2
+
+                circle = plt.Circle((x_avg, y_avg), ten, fill=True, color='gray', linewidth=0)
+                circle.set_zorder(4)
+                ax.add_patch(circle)
+
+            # --------- 4. Draw arcs (wrap segments)
             theta_in = self.global_tangent_angle[i] + d*(math.pi/2) # angle from the centre of pulley to where the outgoing belt contacts it
             theta_wrap = self.wrap_angle[i] # Will always be positive since it is 0 to 2*Pi
 
@@ -244,34 +254,29 @@ class BeltObject:
             y_arc = cy + r * np.sin(arc_t)
 
             arc_color = self.__arc_colour(i)
-            ax.plot(x_arc, y_arc, color=arc_color, linewidth=LINE_WIDTH, zorder=3)
+            ax.plot(x_arc, y_arc, color=arc_color, linewidth=2, zorder=5)
 
-            # --------- 4. Draw straight tangent segments
-            j = (i + 1) % n
-
-            x1, y1 = self.x_out[i], self.y_out[i]
-            x2, y2 = self.x_in[j],  self.y_in[j]
-
+            # --------- 5. Draw straight tangent segments
             line_color = self.__line_colour(i)
-            ax.plot([x1, x2], [y1, y2], color=line_color, linewidth=LINE_WIDTH, zorder=3)
+            ax.plot([x1, x2], [y1, y2], color=line_color, linewidth=2, zorder=5)
 
-            # --------- 5. Draw reaction (optional)
+            # --------- 6. Draw reaction (optional)
             if show_reaction:
                 f  = self.reaction_force[i]
                 a  = self.reaction_angle[i]
 
                 # arrow starts from the radius of the pulley so the arrows appear have the right proportions
-                x1 = cx + r*math.cos(a)
-                y1 = cy + r*math.sin(a)
+                rx1 = cx + r*math.cos(a)
+                ry1 = cy + r*math.sin(a)
 
-                x2 = x1 + self.force_scale * f * math.cos(a)
-                y2 = y1 + self.force_scale * f * math.sin(a)
+                rx2 = rx1 + self.force_scale * f * math.cos(a)
+                ry2 = ry1 + self.force_scale * f * math.sin(a)
 
-                ax.plot([x1, x2], [y1, y2], color="black", linewidth=LINE_WIDTH, zorder=4)
+                ax.plot([rx1, rx2], [ry1, ry2], color="black", linewidth=2, zorder=6)
 
-            # --------- 6. Draw labels (optional)
+            # --------- 7. Draw labels (optional)
             if show_labels:
-                ax.text(cx, cy, str(i), ha='center', va='center', color="black", zorder=5)
+                ax.text(cx, cy, str(i), ha='center', va='center', color="black", zorder=7)
 
         plt.title("Belt Path Visualization")
         plt.xlabel("X")
@@ -459,4 +464,3 @@ class BeltObject:
 
         # ---------- set flag to recompute forces ----------
         self.recompute_forces = True # Do not do imediatly because user may be itereating through geometry
-
