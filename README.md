@@ -1,6 +1,6 @@
 🟦 Belt Geometry Solver & Visualizer  
 A Python library for computing and visualizing belt paths and reaction forces for any number of pulleys.
-The solver computes center‑to‑center geometry, tangent points, wrap angles, belt length, force vectors and produces clear matplotlib diagrams.
+The solver computes center‑to‑center geometry, tangent points, wrap angles, belt length, reaction force vectors, tensions, and produces clear matplotlib diagrams.
 This project models both open and crossed belts and supports CW/CCW pulleys in arbitrary 2D layouts.
 
 
@@ -13,7 +13,7 @@ This project models both open and crossed belts and supports CW/CCW pulleys in a
 • Computes reaction forces and tension for all belt segmants  
 • Visualizes the belt with color‑coded arcs and straight lines  
 • Shows pulleys and pulley labels  
-• shows reaction forces and pully torques  
+• shows reaction forces, pully torques, and tension in straight segments  
 • Clean object‑oriented design  
 
 
@@ -31,11 +31,13 @@ p2 = PulleyObject(radius=40, x_position=150, y_position=50,  direction="CCW")
 p3 = PulleyObject(radius=30, x_position=80,  y_position=140, direction="CW")  
 
 • Build the belt  
-belt = BeltObject(p1, p2, p3, unknown_torque_index=0)  
+belt = BeltObject(p1, p2, p3)  
 
-• Compute geometry  
-length = belt.compute()  
+• read the geometry and forces  
+length = belt.total_length  
 print("Total belt length:", length)  
+tension = belt.local_tension[0]  
+print("Tension in segment 0:", tension)  
 
 • Draw the belt  
 belt.draw_belt()  
@@ -57,7 +59,6 @@ All math is designed so:
 • Wrap angles are always correct for CW/CCW pulleys  
 • Both open and crossed belt paths work automatically  
 • Tangent segments meet arcs perfectly  
-• Zero‑wrap cases behave correctly (straight‑through tangent)  
 • Pully torques balance for analysing steady state scenaros  
 
 
@@ -65,15 +66,15 @@ All math is designed so:
 PulleyObject  
 • Represents a single pulley with radius, 2D position, rotation direction, and torque.  
 • Accepts directions: 1, -1, "CW", "CCW".  
-• Validates numeric inputs and normalizes direction internally.
+• Validates numeric inputs.  
 
 BeltObject  
-• Given multiple pulleys, computes tangent lengths, wrap angles, contact points, and total belt length.  
+• Given multiple pulleys, computes tangent lengths, wrap angles, contact points, total belt length, tension, reaction torque, and reaction forces.  
 • Provides helper functions for retrieving geometry and producing color‑coded belt visualizations.
 
 
 🖼 Preview  
-<img width="640" height="480" alt="Example" src="https://github.com/user-attachments/assets/d6b42530-930d-4814-9adb-a85a3ca7af6f" />
+<img width="640" height="480" alt="bike_belt_example" src="https://github.com/user-attachments/assets/7cc28949-de1f-46f8-a85e-8eb4e60bc6e8" />  
 
 
 🛠 Advanced Features   
