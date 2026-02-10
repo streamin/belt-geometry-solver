@@ -84,7 +84,7 @@ class BeltObject:
         # set flags
         self.recompute_forces = True
         
-        # results filled by __compute_geometry()
+        # results filled by compute_geometry()
         self.total_length = None
         self.C2C_angle = [None] * self.num
         self.C2C_length = [None] * self.num
@@ -104,7 +104,7 @@ class BeltObject:
         self.local_tension = [None] * self.num
 
         # compute geometry
-        self.__compute_geometry()
+        self.compute_geometry()
 
     # -------------------------------------------------------------
     # Modify Inputs
@@ -114,7 +114,7 @@ class BeltObject:
         self.validate_pulley(position, pulley)        
         self.pulleys[position] = pulley
 
-        self.__compute_geometry()
+        self.compute_geometry()
         
     def set_tension(self, tension):
         self.validate_pos_num("Tension", tension)
@@ -399,7 +399,7 @@ class BeltObject:
     # -------------------------------------------------------------
     # Geometry computation
     # -------------------------------------------------------------
-    def __compute_geometry(self):
+    def compute_geometry(self):
         """Compute all tangent lengths, wrap angles, and total belt length."""
 
         n = self.num
@@ -476,3 +476,4 @@ class BeltObject:
 
         # ---------- set flag to recompute forces ----------
         self.recompute_forces = True # Do not do imediatly because user may be itereating through geometry
+
