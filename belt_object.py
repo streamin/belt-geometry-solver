@@ -73,9 +73,13 @@ class BeltObject:
         # ----- Validate and set index inputs -----
         if unknown_torque_index is not None:
             self.set_unknown_torque_index(unknown_torque_index)
+        else:
+            self.unknown_torque_index = None
 
         if tensioner_index is not None:
             self.set_tensioner_index(tensioner_index)
+        else:
+            self.tensioner_index = None
 
         # ----- Validate scale inputs -----
         self.set_torque_scale(torque_scale)
@@ -84,7 +88,7 @@ class BeltObject:
         # set flags
         self.recompute_forces = True
         
-        # results filled by compute_geometry()
+        # results filled by __compute_geometry()
         self.total_length = None
         self.C2C_angle = [None] * self.num
         self.C2C_length = [None] * self.num
@@ -98,13 +102,13 @@ class BeltObject:
         self.x_out = [None] * self.num
         self.y_out = [None] * self.num
 
-        # results filled by __compute_forces()
+        # results filled by compute_forces()
         self.reaction_angle = [None] * self.num
         self.reaction_force = [None] * self.num
         self.local_tension = [None] * self.num
 
         # compute geometry
-        self.compute_geometry()
+        self.__compute_geometry()
 
     # -------------------------------------------------------------
     # Modify Inputs
@@ -114,7 +118,7 @@ class BeltObject:
         self.validate_pulley(position, pulley)        
         self.pulleys[position] = pulley
 
-        self.compute_geometry()
+        self.__compute_geometry()
         
     def set_tension(self, tension):
         self.validate_pos_num("Tension", tension)
@@ -171,7 +175,7 @@ class BeltObject:
     
     def get_all_forces(self):
         if self.recompute_forces:
-            self.__compute_forces()
+            self.compute_forces()
         return {
             "reaction_angle": self.reaction_angle,
             "reaction_force": self.reaction_force,
@@ -180,7 +184,7 @@ class BeltObject:
     
     def get_segment_forces(self, i):
         if self.recompute_forces:
-            self.__compute_forces()
+            self.compute_forces()
         return {
             "reaction_angle": self.reaction_angle[i],
             "reaction_force": self.reaction_force[i],
@@ -195,7 +199,7 @@ class BeltObject:
         Draws the belt path, pulleys, pulley labels, reaction forces, tension, and pulley torques.
         """
         if self.recompute_forces:
-            self.__compute_forces()
+            self.compute_forces()
         
         n = self.num
         pulleys = self.pulleys
@@ -213,7 +217,7 @@ class BeltObject:
             r  = p_i.radius
             d  = p_i.direction
             t  = p_i.torque
-            if i is self.unknown_torque_index:
+            if i == self.unknown_torque_index:
                 t = self.unknown_torque
 
             x1, y1 = self.x_out[i], self.y_out[i]
@@ -242,10 +246,15 @@ class BeltObject:
             # --------- 3. Draw Tension (optional)
             if show_tension:
                 ten = self.force_scale * self.local_tension[i]/2 # divide by 2 so diam is correct
+                ten_colour = 'gray'
+                if ten < 0:
+                    ten_colour = 'red'
+                    ten = abs(ten)
+
                 x_avg = (x1+x2)/2
                 y_avg = (y1+y2)/2
 
-                circle = plt.Circle((x_avg, y_avg), ten, fill=True, color='gray', linewidth=0)
+                circle = plt.Circle((x_avg, y_avg), ten, fill=True, color=ten_colour, linewidth=0)
                 circle.set_zorder(4)
                 ax.add_patch(circle)
 
@@ -330,7 +339,7 @@ class BeltObject:
     # -------------------------------------------------------------
     # Compute reaction forces
     # -------------------------------------------------------------
-    def __compute_forces(self):
+    def compute_forces(self):
         if self.unknown_torque_index is None:
             raise ValueError("You must set unknown_torque_index")
 
@@ -356,7 +365,7 @@ class BeltObject:
             k = i - 1
 
             tor = pulleys[i].torque
-            if i is uti:
+            if i == uti:
                 tor = self.unknown_torque
 
             rel_ten[i] = rel_ten[k] - pulleys[i].direction * tor / pulleys[i].radius
@@ -376,7 +385,7 @@ class BeltObject:
 
         # check for negative tensions
         if np.min(rel_ten) < 0:
-            raise ValueError(f"You can't push on a rope. Tension at {np.argmin(rel_ten)} is {np.min(rel_ten)}")
+            print(f"Warning: You can't push on a rope. Tension at {np.argmin(rel_ten)} is {np.min(rel_ten)}")
         
         self.local_tension = rel_ten
 
@@ -399,7 +408,7 @@ class BeltObject:
     # -------------------------------------------------------------
     # Geometry computation
     # -------------------------------------------------------------
-    def compute_geometry(self):
+    def __compute_geometry(self):
         """Compute all tangent lengths, wrap angles, and total belt length."""
 
         n = self.num
@@ -454,7 +463,7 @@ class BeltObject:
 
             # ---------------- pulley wrap ----------------
             # k-angle minus i-angle for CW pulleys, opposite for CCW pulleys
-            self.wrap_angle[i] = self.angle_0_to_2pi(p_i.direction * (tangent_in - tangent_out))
+            self.wrap_angle[i] = self.angle_0_to_2pi(p_i.direction * (tangent_in - tangent_out)) # always positive
             self.wrap_length[i] = self.wrap_angle[i] * p_i.radius
 
             # ---------------- Wrap Contact points ----------------
@@ -476,4 +485,3 @@ class BeltObject:
 
         # ---------- set flag to recompute forces ----------
         self.recompute_forces = True # Do not do imediatly because user may be itereating through geometry
-
